@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dairy Survey Form (Online)</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; max-width: 600px; margin: auto; }
+    label, input, select, button { display: block; width: 100%; margin-bottom: 1em; font-size: 1em; }
+    .summary, .gps-display { background: #f4f4f4; padding: 1em; border: 1px solid #ccc; display: none; margin-bottom: 1em; }
+  </style>
+</head>
+<body>
+  <h2>Dairy Household Survey (Online)</h2>
+  <form id="surveyForm">
+    <label>Name of Head of Family:</label>
+    <input type="text" name="name" required>
+
+    <label>Family Members:</label>
+    <input type="number" name="members" required>
+
+    <label>Operational Land (acres):</label>
+    <input type="number" name="land" required>
+
+    <label>Social Category:</label>
+    <select name="category" required>
+      <option value="">--Select--</option>
+      <option value="General">General</option>
+      <option value="OBC">OBC</option>
+      <option value="SC">SC</option>
+      <option value="ST">ST</option>
+    </select>
+
+    <label>Occupation:</label>
+    <input type="text" name="occupation" required>
+
+    <label>Milk Production (LPD):</label>
+    <input type="number" name="milk" required>
+
+    <label>Price Received (Rs./Litre):</label>
+    <input type="number" name="price" required>
+
+    <button type="button" onclick="getGPS()">📍 Get Location</button>
+    <div class="gps-display" id="gpsStatus">Waiting for GPS...</div>
+
+    <button type="button" onclick="submitForm()">Submit</button>
+  </form>
+
+  <div class="summary" id="summary"></div>
+
+  <script>
+    let gpsLat = "";
+    let gpsLong = "";
+
+    function getGPS() {
+      const statusDiv = document.getElementById("gpsStatus");
+      statusDiv.style.display = "block";
+      statusDiv.innerText = "Fetching location...";
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          gpsLat = pos.coords.latitude;
+          gpsLong = pos.coords.longitude;
+          statusDiv.innerText = `Latitude: ${gpsLat}, Longitude: ${gpsLong}`;
+        }, err => {
+          statusDiv.innerText = "Failed to get GPS. Please allow location access.";
+        });
+      } else {
+        statusDiv.innerText = "Geolocation is not supported by your browser.";
+      }
+    }
+
+    function submitForm() {
+      const form = document.forms['surveyForm'];
+      const data = {
+        name: form['name'].value,
+        members: form['members'].value,
+        land: form['land'].value,
+        category: form['category'].value,
+        occupation: form['occupation'].value,
+        milk: form['milk'].value,
+        price: form['price'].value,
+        lat: gpsLat,
+        long: gpsLong
+      };
+
+      fetch("https://script.google.com/macros/s/AKfycbwWYCkUZXAfgIxbcEBoO4QJc-DU0RRdhHNtfWHUpD57iEif_k7elIMmydCM603PBbQPbg/exec", {
+        method: "POST",
+        body: JSON.stringify(data)
+      }).then(res => {
+        document.getElementById("summary").style.display = "block";
+        document.getElementById("summary").innerHTML = `
+          <h3>Submission Successful ✅</h3>
+          <p><strong>Name:</strong> ${data.name}</p>
+          <p><strong>Family Members:</strong> ${data.members}</p>
+          <p><strong>Land:</strong> ${data.land} acres</p>
+          <p><strong>Category:</strong> ${data.category}</p>
+          <p><strong>Occupation:</strong> ${data.occupation}</p>
+          <p><strong>Milk Production:</strong> ${data.milk} LPD</p>
+          <p><strong>Price:</strong> ₹${data.price}</p>
+          <p><strong>GPS:</strong> ${data.lat}, ${data.long}</p>
+        `;
+        form.reset();
+        document.getElementById("gpsStatus").style.display = "none";
+      }).catch(err => alert("Submission failed. Check internet or GPS permission."));
+    }
+  </script>
+</body>
+</html>
